@@ -1,0 +1,4 @@
+(executable
+ (public_name nia_tty)
+ (name main)
+ (libraries nia_tty))
