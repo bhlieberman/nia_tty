@@ -18,22 +18,45 @@ let canto_view c i =
   in
   text
 
-let parens_button ~label ~f ~(i : int Lwd.var) =
+  (** Collapsible parens view *)
+let inner_parens c i =
+  let parens_re = Re.Str.regexp "(*[a-zA-Z]*)*" in
+  let in_text = canto_view c i in
+  let _ = Re.Str.search_forward parens_re in_text 0 in
+  let match_begin = Re.Str.match_beginning () in
+  let _match_end = Re.Str.match_end () in (* find out how to concatenate images like this: hcat ? *)
+  let _before_after = String.to_seq in_text in
+  let _before = Seq.take (pred match_begin) in
+  let parens = Re.Str.matched_string in_text in
+  W.unfoldable ~folded_by_default:true (Lwd.pure @@ W.string parens)
+
+let parens_button ~(label : char) ~f ~(i : int Lwd.var) =
   let open Nottui in
   let open Notty in
   let color = function
+    | 0 -> A.(bg white ++ fg (gray 3) ++ st bold)
     | 1 -> A.(bg red ++ fg white ++ st bold)
     | 2 -> A.(bg yellow ++ fg white ++ st bold)
     | 3 -> A.(bg blue ++ fg white ++ st bold)
     | 4 -> A.(bg green ++ fg white ++ st bold)
     | 5 -> A.(bg magenta ++ fg white ++ st bold)
-    | _ -> A.(bg (gray 3) ++ fg white ++ st bold)
+    | _ -> A.(bg white ++ st bold)
   in
   let button_box =
     [
       Lwd.pure @@ Ui.space 0 25;
       Lwd.map (Lwd.get i) ~f:(fun curr ->
-          W.button ~attr:(color curr) label (fun () -> Lwd.set i (f curr)));
+          let parens =
+            let before, p, after =
+              ( Seq.init (pred curr) (Fun.const ' '),
+                Seq.init curr (Fun.const label),
+                Seq.init (curr - pred curr) (Fun.const ' ') ) (* this needs adjusting *)
+            in
+            let init : char Seq.t = Seq.empty in
+            Seq.append init before |> Seq.append p |> Seq.append after
+            |> String.of_seq
+          in
+          W.button ~attr:(color curr) parens (fun () -> Lwd.set i (f curr)));
       Lwd.pure @@ Ui.space 0 25;
     ]
     |> W.vbox
@@ -43,7 +66,7 @@ let parens_button ~label ~f ~(i : int Lwd.var) =
 let button_pane =
   let open Nottui in
   let open Notty in
-  let level = Lwd.var (Lwd_utils.clampi 0 ~min:0 ~max:5) in
+  let level = Lwd.var (Lwd_utils.clampi 2 ~min:0 ~max:5) in
   let canto = Lwd.var (Lwd_utils.clampi 1 ~min:1 ~max:4) in
   let canto_button ~label ~f =
     W.hbox
@@ -60,7 +83,7 @@ let button_pane =
     [
       W.hbox
         [
-          parens_button ~label:"(((((" ~f:pred ~i:level;
+          parens_button ~label:'(' ~f:pred ~i:level;
           Lwd.pure (Ui.space 10 0);
           Lwd.join
           @@ Lwd.map2 (Lwd.get canto) (Lwd.get level) ~f:(fun c i ->
@@ -82,6 +105,6 @@ let button_pane =
                  ]
                  |> W.vbox);
           Lwd.pure (Ui.space 10 0);
-          parens_button ~label:")))))" ~f:succ ~i:level;
+          parens_button ~label:')' ~f:succ ~i:level;
         ];
     ]
