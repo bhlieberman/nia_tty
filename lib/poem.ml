@@ -1,5 +1,18 @@
 module W = Nottui_widgets
 
+module Canto = struct
+  type t = { id : int; body : string; subtree : string list }
+  (** Module for working on data representation of the poem *)
+end
+
+let memo : (string, string array) Hashtbl.t = Hashtbl.create 3
+
+let updateMemo (m : (string, string array) Hashtbl.t) (canto : string)
+    (idx : int) =
+    let vs: string array = [||] in
+    vs.(idx) <- canto;
+    Hashtbl.add m canto vs
+
 let canto_view c i =
   let dir =
     match c with
@@ -17,6 +30,20 @@ let canto_view c i =
       In_channel.input_all
   in
   text
+
+(** Function to create modal on click of button-like text elements *)
+let makeModal i txt =
+  let open Lwd_infix in
+  let open Nottui in
+  let$ modal =
+    let modal_body = W.string ~attr:Notty.A.(bg white ++ st bold) txt in
+    W.hbox
+      [
+        Lwd.pure (Ui.space 15 0);
+        W.vbox [ Lwd.pure (Ui.space 0 10); Lwd.pure modal_body ];
+      ]
+  in
+  Nottui.Ui.zcat [ i; modal ]
 
 (** Collapsible parens view (WIP) *)
 let inner_parens c i =
@@ -60,7 +87,7 @@ let parens_button ~(label : char) ~f ~(i : int Lwd.var) =
   in
   let button_box =
     [
-      Lwd.pure @@ Ui.space 0 25;
+      Lwd.pure (Ui.space 0 25);
       Lwd.map (Lwd.get i) ~f:(fun curr ->
           let parens =
             let open Seq in
@@ -109,12 +136,6 @@ let button_pane =
           Lwd.join
           @@ Lwd.map2 (Lwd.get canto) (Lwd.get level) ~f:(fun c i ->
                  let text = inner_parens (if c == 3 then 4 else c) i in
-                 (* let lines = String.split_on_char '\n' text in
-                    let ln = List.length lines in
-                    let body =
-                      if ln > 10 then W.scroll_area (W.string text |> Lwd.pure)
-                      else Lwd.pure (W.string text)
-                    in *)
                  [
                    Lwd.pure (Ui.space 0 10);
                    canto_button ~label:"     -     " ~f:pred;
