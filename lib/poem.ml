@@ -20,31 +20,31 @@ let canto_view c i =
 
 (** Collapsible parens view (WIP) *)
 let inner_parens c i =
-  let parens_re = Re.Str.regexp "(*[a-zA-Z]*)*" in
   let in_text = canto_view c i in
-  let b, a =
-    try
-      let _ = Re.Str.search_forward parens_re in_text 0 in
-      let parens_start = Re.Str.match_beginning () in
-      let parens_end = Re.Str.match_end () in
-      let ss = String.to_seq in_text in
-      let before_parens = Seq.take parens_start ss |> String.of_seq in
-      let after_parens = Seq.drop parens_end ss |> String.of_seq in
-      (* need to account for persistence of this sequence... *)
-      (before_parens, after_parens)
-    with Not_found -> (String.empty, String.empty)
+  let p =
+    Re.(
+      seq
+        [
+          repn (str "(") 1 None;
+          repn (alt [ word (rep alpha); space ]) 1 None;
+          repn (str ")") 1 None;
+        ])
+    |> Re.compile
   in
-  (* find out how to concatenate images like this: hcat ? *)
-  let parens = Re.Str.matched_string in_text in
-  Lwd.map ~f:Nottui.Ui.hcat
-    (Lwd_utils.flatten_l
-       [
-         Lwd.pure (W.string b);
-         W.unfoldable ~folded_by_default:true
-           (Lwd.pure @@ W.string "Open me")
-           (fun _ -> Lwd.pure (W.string parens));
-         Lwd.pure (W.string a);
-       ])
+  let all_matches = Re.matches p in_text in
+  let widgets =
+    List.map
+      (fun m ->
+        W.unfoldable ~folded_by_default:true
+          (Lwd.pure @@ W.string "...")
+          (fun _ -> Lwd.pure (W.string m)))
+      all_matches
+  in
+  let replaced =
+    Re.split p in_text |> List.map (Fun.compose Lwd.pure W.string)
+  in
+  Seq.interleave (List.to_seq replaced) (List.to_seq widgets)
+  |> List.of_seq |> Lwd_utils.flatten_l |> Lwd.map ~f:Nottui.Ui.vcat
 
 let parens_button ~(label : char) ~f ~(i : int Lwd.var) =
   let open Nottui in
@@ -110,11 +110,11 @@ let button_pane =
           @@ Lwd.map2 (Lwd.get canto) (Lwd.get level) ~f:(fun c i ->
                  let text = inner_parens (if c == 3 then 4 else c) i in
                  (* let lines = String.split_on_char '\n' text in
-                 let ln = List.length lines in
-                 let body =
-                   if ln > 10 then W.scroll_area (W.string text |> Lwd.pure)
-                   else Lwd.pure (W.string text)
-                 in *)
+                    let ln = List.length lines in
+                    let body =
+                      if ln > 10 then W.scroll_area (W.string text |> Lwd.pure)
+                      else Lwd.pure (W.string text)
+                    in *)
                  [
                    Lwd.pure (Ui.space 0 10);
                    canto_button ~label:"     -     " ~f:pred;
