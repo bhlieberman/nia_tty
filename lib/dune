@@ -1,4 +1,4 @@
 (library
  (name nia_tty)
  (libraries nottui nottui-pretty re)
- (modules core poem utils))
+ (modules core layout poem utils))

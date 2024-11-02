@@ -9,25 +9,27 @@ let memo : (string, string array) Hashtbl.t = Hashtbl.create 3
 
 let updateMemo (m : (string, string array) Hashtbl.t) (canto : string)
     (idx : int) =
-    let vs: string array = [||] in
-    vs.(idx) <- canto;
-    Hashtbl.add m canto vs
+  let vs : string array = [||] in
+  vs.(idx) <- canto;
+  Hashtbl.add m canto vs
 
 let canto_view c i =
   let dir =
     match c with
-    | 0 -> "canto_I"
-    | 1 -> "canto_I"
-    | 2 -> "canto_II"
-    | 4 -> "canto_IV"
-    | _ -> failwith "not possible"
+    | 0 -> Some "canto_I"
+    | 1 -> Some "canto_I"
+    | 2 -> Some "canto_II"
+    | 4 -> Some "canto_IV"
+    | _ -> None
   in
-  let dirname = Filename.concat "assets" dir in
+  let dirname = Option.bind dir (fun d -> Filename.concat "assets" d |> Option.some) in
   let fname = if i == 0 then "body.txt" else Format.sprintf "par_%d.txt" i in
   let text =
+    try
     In_channel.with_open_text
-      (Filename.concat dirname fname)
+      (Filename.concat (Option.get dirname) fname)
       In_channel.input_all
+    with _ -> "You tried to read a part of the poem that doesn't exist. Please write it yourself..."
   in
   text
 
@@ -135,7 +137,9 @@ let button_pane =
           Lwd.pure (Ui.space 10 0);
           Lwd.join
           @@ Lwd.map2 (Lwd.get canto) (Lwd.get level) ~f:(fun c i ->
-                 let text = inner_parens (if c == 3 then 4 else c) i in
+                 let handle_exn =
+                  if c == 3 then 4 else c in
+                 let text = inner_parens handle_exn i in
                  [
                    Lwd.pure (Ui.space 0 10);
                    canto_button ~label:"     -     " ~f:pred;
