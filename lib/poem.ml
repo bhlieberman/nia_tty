@@ -22,14 +22,18 @@ let canto_view c i =
     | 4 -> Some "canto_IV"
     | _ -> None
   in
-  let dirname = Option.bind dir (fun d -> Filename.concat "assets" d |> Option.some) in
+  let dirname =
+    Option.bind dir (fun d -> Filename.concat "assets" d |> Option.some)
+  in
   let fname = if i == 0 then "body.txt" else Format.sprintf "par_%d.txt" i in
   let text =
     try
-    In_channel.with_open_text
-      (Filename.concat (Option.get dirname) fname)
-      In_channel.input_all
-    with _ -> "You tried to read a part of the poem that doesn't exist. Please write it yourself..."
+      In_channel.with_open_text
+        (Filename.concat (Option.get dirname) fname)
+        In_channel.input_all
+    with _ ->
+      "You tried to read a part of the poem that doesn't exist.\n\
+       Please write it yourself..."
   in
   text
 
@@ -54,13 +58,21 @@ let inner_parens c i =
     Re.(
       seq
         [
-          repn (str "(") 1 None;
-          repn (alt [ word (rep alpha); space ]) 1 None;
-          repn (str ")") 1 None;
+          repn (str "(") 1 (Some 5);
+          repn (alt [ word (repn alpha 1 None); space ]) 1 None;
+          repn (str ")") 1 (Some 5);
         ])
     |> Re.compile
   in
   let all_matches = Re.matches p in_text in
+  let groups =
+    Re.all p in_text
+    |> List.map (Fun.compose Array.to_list Re.Group.all)
+    |> List.flatten
+  in
+  (* really sus logging method *)
+  Out_channel.with_open_text "log.txt" (fun oc ->
+      String.concat "\n" groups |> Out_channel.output_string oc);
   let widgets =
     List.map
       (fun m ->
@@ -74,6 +86,16 @@ let inner_parens c i =
   in
   Seq.interleave (List.to_seq replaced) (List.to_seq widgets)
   |> List.of_seq |> Lwd_utils.flatten_l |> Lwd.map ~f:Nottui.Ui.vcat
+
+let big_button ~attr p f =
+  let open Nottui in
+  let area =
+    Ui.mouse_area (fun ~x:_ ~y:_ _ ->
+        f ();
+        `Handled)
+  in
+  let raw_image = Notty.I.char attr ' ' 10 2 in
+  area @@ Ui.hcat [ Ui.atom raw_image; W.string p ]
 
 let parens_button ~(label : char) ~f ~(i : int Lwd.var) =
   let open Nottui in
@@ -106,7 +128,7 @@ let parens_button ~(label : char) ~f ~(i : int Lwd.var) =
               |> String.of_seq
             else "     "
           in
-          W.button ~attr:(color curr) parens (fun () -> Lwd.set i (f curr)));
+          big_button ~attr:(color curr) parens (fun () -> Lwd.set i (f curr)));
       Lwd.pure @@ Ui.space 0 25;
     ]
     |> W.vbox
@@ -137,8 +159,7 @@ let button_pane =
           Lwd.pure (Ui.space 10 0);
           Lwd.join
           @@ Lwd.map2 (Lwd.get canto) (Lwd.get level) ~f:(fun c i ->
-                 let handle_exn =
-                  if c == 3 then 4 else c in
+                 let handle_exn = if c == 3 then 4 else c in
                  let text = inner_parens handle_exn i in
                  [
                    Lwd.pure (Ui.space 0 10);
