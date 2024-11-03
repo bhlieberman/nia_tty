@@ -1,5 +1,7 @@
 module W = Nottui_widgets
 
+module P = Parens.ParensMatcher
+
 module Canto = struct
   type t = { id : int; body : string; subtree : string list }
   (** Module for working on data representation of the poem *)
@@ -54,16 +56,7 @@ let makeModal i txt =
 (** Collapsible parens view (WIP) *)
 let inner_parens c i =
   let in_text = canto_view c i in
-  let p =
-    Re.(
-      seq
-        [
-          repn (str "(") 1 (Some 5);
-          repn (alt [ word (repn alpha 1 None); space ]) 1 None;
-          repn (str ")") 1 (Some 5);
-        ])
-    |> Re.compile
-  in
+  let p = P.parens in
   let all_matches = Re.matches p in_text in
   let groups =
     Re.all p in_text
@@ -138,8 +131,8 @@ let parens_button ~(label : char) ~f ~(i : int Lwd.var) =
 let button_pane =
   let open Nottui in
   let open Notty in
-  let level = Lwd.var (Lwd_utils.clampi 0 ~min:0 ~max:5) in
-  let canto = Lwd.var (Lwd_utils.clampi 1 ~min:1 ~max:4) in
+  let level = Lwd.var (Lwd_utils.clampi 2 ~min:0 ~max:5) in
+  let canto = Lwd.var (Lwd_utils.clampi 2 ~min:1 ~max:4) in
   let canto_button ~label ~f =
     W.hbox
       [
