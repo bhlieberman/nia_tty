@@ -58,14 +58,6 @@ let inner_parens c i =
   let in_text = canto_view c i in
   let p = P.parens in
   let all_matches = Re.matches p in_text in
-  let groups =
-    Re.all p in_text
-    |> List.map (Fun.compose Array.to_list Re.Group.all)
-    |> List.flatten
-  in
-  (* really sus logging method *)
-  Out_channel.with_open_text "log.txt" (fun oc ->
-      String.concat "\n" groups |> Out_channel.output_string oc);
   let widgets =
     List.map
       (fun m ->
