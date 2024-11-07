@@ -4,7 +4,7 @@ module Files = struct
 
   let files = Sys.readdir "assets"
 
-  let data =
+  let data () =
     let open Stdlib in
     let par_1 = ref [] in
     let par_2 = ref [] in
@@ -40,7 +40,7 @@ module Files = struct
               | _ -> ())
             filenames;
           run_disp (disp ())
-      | None -> !par_1 @ !par_2 @ !par_3 |> List.iter print_endline
+      | None -> !par_1 @ !par_2 @ !par_3 @ !par_4 @ !par_5 |> List.iter print_endline
     in
     run_disp (disp ())
 end
