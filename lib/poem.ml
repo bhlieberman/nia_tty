@@ -1,5 +1,4 @@
 module W = Nottui_widgets
-
 module P = Parens.ParensMatcher
 
 module Canto = struct
@@ -61,9 +60,15 @@ let inner_parens c i =
   let widgets =
     List.map
       (fun m ->
+        let len = String.length m in
         W.unfoldable ~folded_by_default:true
           (Lwd.pure @@ W.string "...")
-          (fun _ -> Lwd.pure (W.string m)))
+          (fun _ ->
+            if len = 0 then
+              let _halves = String.split_on_char '\n' m in
+              let first_half, second_half = (List.nth _halves 0, List.nth _halves 1) in
+              Nottui.Ui.hcat [W.string first_half; W.string second_half] |> Lwd.pure
+            else W.string m |> Lwd.pure))
       all_matches
   in
   let replaced =
@@ -96,7 +101,7 @@ let parens_button ~(label : char) ~f ~(i : int Lwd.var) =
   in
   let button_box =
     [
-      Lwd.pure (Ui.space 0 25);
+      Lwd.pure (Ui.space 0 20);
       Lwd.map (Lwd.get i) ~f:(fun curr ->
           let parens =
             let open Seq in
@@ -113,8 +118,8 @@ let parens_button ~(label : char) ~f ~(i : int Lwd.var) =
               |> String.of_seq
             else "     "
           in
-          big_button ~attr:(color curr) parens (fun () -> Lwd.set i (f curr)));
-      Lwd.pure @@ Ui.space 0 25;
+          W.button ~attr:(color curr) parens (fun () -> Lwd.set i (f curr)));
+      Lwd.pure @@ Ui.space 0 20;
     ]
     |> W.vbox
   in
@@ -141,22 +146,22 @@ let button_pane =
       W.hbox
         [
           parens_button ~label:'(' ~f:pred ~i:level;
-          Lwd.pure (Ui.space 10 0);
+          Lwd.pure (Ui.space 5 0);
           Lwd.join
           @@ Lwd.map2 (Lwd.get canto) (Lwd.get level) ~f:(fun c i ->
                  let handle_exn = if c == 3 then 4 else c in
                  let text = inner_parens handle_exn i in
-                 [
+                 ([
                    Lwd.pure (Ui.space 0 10);
                    canto_button ~label:"     -     " ~f:pred;
                    Lwd.pure (Ui.space 0 5);
-                   text;
+                   Lwd.map ~f:(fun w -> Ui.resize ~h:10 w) @@ W.scroll_area text;
                    Lwd.pure (Ui.space 0 5);
                    canto_button ~label:"     +     " ~f:succ;
                    Lwd.pure (Ui.space 0 10);
-                 ]
+                 ] : ui Lwd.t list)
                  |> W.vbox);
-          Lwd.pure (Ui.space 10 0);
+          Lwd.pure (Ui.space 5 0);
           parens_button ~label:')' ~f:succ ~i:level;
         ];
     ]

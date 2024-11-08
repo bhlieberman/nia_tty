@@ -16,14 +16,14 @@ let borders children =
         let joined =
           Ui.zcat
             [
-              Ui.atom sides;
-              Ui.atom y_sides;
               Ui.hcat
                 [
                   Ui.atom (hpad 5 5 (void 0 0));
                   children;
                   Ui.atom (hpad 0 5 (void 0 0));
                 ];
+              Ui.atom sides;
+              Ui.atom y_sides;
             ]
         in
         W.scroll_area @@ Lwd.pure joined)

@@ -1,6 +1,4 @@
 module Files = struct
-  open Dolog
-  open Re
 
   let files = Sys.readdir "assets"
 
@@ -18,9 +16,10 @@ module Files = struct
     in
     let disp =
       Array.to_seq files
-      |> Seq.filter (fun s ->
-             Re.Str.string_partial_match (Re.Str.regexp "canto") s 0)
-      |> Seq.map (fun d -> Filename.concat "assets" d |> Unix.realpath)
+      |> Seq.filter_map (fun s ->
+             if Re.Str.string_partial_match (Re.Str.regexp "canto") s 0 then
+               Filename.concat "assets" s |> Unix.realpath |> Option.some
+             else None)
       |> Seq.to_dispenser
     in
     let rec run_disp = function
@@ -40,7 +39,7 @@ module Files = struct
               | _ -> ())
             filenames;
           run_disp (disp ())
-      | None -> !par_1 @ !par_2 @ !par_3 @ !par_4 @ !par_5 |> List.iter print_endline
+      | None -> !par_1 @ !par_2 @ !par_3 @ !par_4 @ !par_5
     in
     run_disp (disp ())
 end

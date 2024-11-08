@@ -1,5 +1,5 @@
 (library
  (name nia_tty)
- (libraries angstrom nottui nottui-pretty re)
+ (libraries angstrom nottui nottui-pretty re gui)
  (modules core layout parens poem utils)
  (preprocess (pps ppx_let)))
