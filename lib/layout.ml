@@ -10,25 +10,22 @@ let borders children =
   let right = char (bg white ++ fg red) '*' 1 40 <|> hpad 40 19 (void 40 0) in
   let sides = left <|> right in
   let y_sides = top <-> bottom in
-  let inner =
-    Lwd.map
-      ~f:(fun children ->
-        let joined =
-          Ui.zcat
-            [
-              Ui.hcat
-                [
-                  Ui.atom (hpad 5 5 (void 0 0));
-                  children;
-                  Ui.atom (hpad 0 5 (void 0 0));
-                ];
-              Ui.atom sides;
-              Ui.atom y_sides;
-            ]
-        in
-        W.scroll_area @@ Lwd.pure joined)
-      children
-  in
-  Lwd.join inner
+  Lwd.map
+    ~f:(fun children ->
+      let joined =
+        Ui.zcat
+          [
+            Ui.hcat
+              [
+                Ui.atom (hpad 5 5 (void 0 0));
+                children;
+                Ui.atom (hpad 0 5 (void 0 0));
+              ];
+            Ui.atom sides;
+            Ui.atom y_sides;
+          ]
+      in
+      W.scroll_area @@ Lwd.pure joined)
+    children
 
 let frame = borders Poem.button_pane
