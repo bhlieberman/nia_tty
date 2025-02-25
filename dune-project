@@ -5,21 +5,22 @@
 (generate_opam_files true)
 
 (source
- (github username/reponame))
+ (github bhlieberman/nia_tty))
 
-(authors "Author Name")
+(authors "Ben Lieberman")
 
-(maintainers "Maintainer Name")
+(maintainers "Ben Lieberman")
 
-(license LICENSE)
+(license BSD-3)
 
 (documentation https://url/to/documentation)
 
 (package
  (name nia_tty)
- (synopsis "A short synopsis")
- (description "A longer description")
- (depends ocaml dune)
+ (synopsis "A poem in a terminal")
+ (description "A reactive TUI for reading and interacting with Nouvelles Impressions d'Afrique,
+ by Raymond Roussel")
+ (depends ocaml dune dolog nottui nottui-pretty lwd re ppx_let)
  (tags
   (topics "to describe" your project)))
 
