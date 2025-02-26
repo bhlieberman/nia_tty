@@ -10,16 +10,19 @@ end
 
 module State = struct
   let canto = Lwd.var (Lwd_utils.clampi 1 ~min:1 ~max:4)
-  let level = Lwd.var (Lwd_utils.clampi 0 ~min:0 ~max:5)
+  let level = Lwd.var (Lwd_utils.clampi 1 ~min:0 ~max:5)
+
+  let make_parens_button_label (label : string) =
+    let$ snapshot = Lwd.get level in
+    let space_around = Seq.init snapshot (Fun.const ' ') |> String.of_seq in
+    let parens =
+      Seq.unfold (fun i -> if i < snapshot then Some (i, succ i) else None) 0
+      |> List.of_seq
+      |> List.map (fun i -> if i == 0 then "" else label)
+      |> String.concat ""
+    in
+    space_around ^ parens ^ space_around
 end
-
-let memo : (string, string array) Hashtbl.t = Hashtbl.create 3
-
-let updateMemo (m : (string, string array) Hashtbl.t) (canto : string)
-    (idx : int) =
-  let vs : string array = [||] in
-  vs.(idx) <- canto;
-  Hashtbl.add m canto vs
 
 let canto_view c i =
   let dir =
@@ -87,17 +90,7 @@ let inner_parens c i =
   in
   Lwd.pure (Ui.resize ~h:10 fixed_size) |> W.scroll_area
 
-let big_button ~attr p f =
-  let open Nottui in
-  let area =
-    Ui.mouse_area (fun ~x:_ ~y:_ _ ->
-        f ();
-        `Handled)
-  in
-  let raw_image = Notty.I.char attr ' ' 10 2 in
-  area @@ Ui.hcat [ Ui.atom raw_image; W.string p ]
-
-let parens_button ~label ~f =
+let parens_button ~label =
   let open Nottui in
   let open Notty in
   let color = function
@@ -109,24 +102,12 @@ let parens_button ~label ~f =
     | 5 -> A.(bg magenta ++ fg white ++ st bold)
     | _ -> A.(bg white ++ st bold)
   in
-  let$ current_idx = Lwd.get State.level in
-  let safe_idx = if current_idx == 0 then 1 else current_idx in
-  let parens_text =
-    (* Should move these Seq.init calls to State module *)
-    let space_around = Seq.init (pred safe_idx) (Fun.const ' ') in
-    let make_label = Seq.init safe_idx (Fun.const label) in
-    if safe_idx >= 1 then
-      let before, p, after =
-        (space_around, make_label, space_around)
-        (* this needs adjusting *)
-      in
-      before |> Seq.append Seq.empty |> Fun.flip Seq.append p
-      |> Fun.flip Seq.append after |> String.of_seq
-    else "     "
-  in
+  let$ current_idx = Lwd.get State.level
+  and$ parens_text = State.make_parens_button_label label in
   let parens_button =
+    let f = match label with "(" -> pred | ")" -> succ | _ -> Fun.id in
     W.button ~attr:(color current_idx) parens_text (fun () ->
-        Utils.update f State.level)
+        State.level $= f (Lwd.peek State.level))
   in
   let children =
     [
@@ -147,7 +128,7 @@ let status_bar =
 let button_pane =
   let open Nottui in
   let open Notty in
-  let canto_button ~label ~f =
+  let canto_button ~label =
     W.hbox
       [
         Lwd.pure @@ Ui.space 25 0;
@@ -155,16 +136,22 @@ let button_pane =
         @@ W.button
              ~attr:A.(bg white ++ fg red ++ st bold)
              label
-             (fun () -> Utils.update f State.canto);
+             (fun () ->
+               State.canto
+               $= (match label with
+                  | " + " -> succ
+                  | " - " -> pred
+                  | _ -> Fun.id)
+                  @@ Lwd.peek State.canto);
       ]
   in
   let$* canto_level = Lwd.get State.canto
   and$ parens_level = Lwd.get State.level in
   let resizeable_body = inner_parens canto_level parens_level in
-  let canto_button_top = canto_button ~label:" - " ~f:pred in
-  let canto_button_bottom = canto_button ~label:" +" ~f:succ in
-  let$* parens_button_left = parens_button ~label:'(' ~f:pred
-  and$ parens_button_right = parens_button ~label:')' ~f:succ in
+  let canto_button_top = canto_button ~label:" - " in
+  let canto_button_bottom = canto_button ~label:" + " in
+  let$* parens_button_left = parens_button ~label:"("
+  and$ parens_button_right = parens_button ~label:")" in
   W.vbox
     [
       W.hbox
