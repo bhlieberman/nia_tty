@@ -13,6 +13,7 @@ doc: "https://url/to/documentation"
 bug-reports: "https://github.com/bhlieberman/nia_tty/issues"
 depends: [
   "ocaml"
+  "angstrom"
   "dune" {>= "3.16"}
   "dolog"
   "nottui"

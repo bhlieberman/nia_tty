@@ -1,5 +1,7 @@
 module W = Nottui_widgets
 module P = Parens.ParensMatcher
+open Lwd_infix
+open Lwd.Infix
 
 module Canto = struct
   type t = { id : int; body : string; subtree : string list }
@@ -42,7 +44,6 @@ let canto_view c i =
 
 (** Function to create modal on click of button-like text elements *)
 let makeModal i txt =
-  let open Lwd_infix in
   let open Nottui in
   let$ modal =
     let modal_body = W.string ~attr:Notty.A.(bg white ++ st bold) txt in
@@ -56,6 +57,7 @@ let makeModal i txt =
 
 (** Collapsible parens view (WIP) *)
 let inner_parens c i =
+  let open Nottui in
   let in_text = canto_view c i in
   let p = P.parens in
   let all_matches = Re.matches p in_text in
@@ -79,8 +81,11 @@ let inner_parens c i =
   let replaced =
     Re.split p in_text |> List.map (Fun.compose Lwd.pure W.string)
   in
-  Seq.interleave (List.to_seq replaced) (List.to_seq widgets)
-  |> List.of_seq |> Lwd_utils.flatten_l |> Lwd.map ~f:Nottui.Ui.vcat
+  let$ fixed_size =
+    Seq.interleave (List.to_seq replaced) (List.to_seq widgets)
+    |> List.of_seq |> Lwd_utils.flatten_l |> Lwd.map ~f:Nottui.Ui.vcat
+  in
+  Lwd.pure (Ui.resize ~h:10 fixed_size) |> W.scroll_area
 
 let big_button ~attr p f =
   let open Nottui in
@@ -95,7 +100,6 @@ let big_button ~attr p f =
 let parens_button ~label ~f =
   let open Nottui in
   let open Notty in
-  let open Lwd_infix in
   let color = function
     | 0 -> A.(bg (rgb_888 ~r:24 ~g:48 ~b:100) ++ fg white ++ st bold)
     | 1 -> A.(bg red ++ fg white ++ st bold)
@@ -132,22 +136,17 @@ let parens_button ~label ~f =
   W.vbox children
 
 let status_bar =
-  let open Lwd_infix in
   let open Notty in
-  let$ current_level = Lwd.get State.level
-  and$ current_canto = Lwd.get State.canto in
-  let current_level_view =
-    string_of_int current_level |> W.string ~attr:A.(bg blue ++ fg white)
+  let make_label i =
+    string_of_int i |> W.string ~attr:A.(bg blue ++ fg white) |> Lwd.pure
   in
-  let current_canto_view =
-    string_of_int current_canto |> W.string ~attr:A.(bg blue ++ fg white)
-  in
-  [ current_level_view; current_canto_view ]
+  let current_level = Lwd.get State.level >>= make_label in
+  let current_canto = Lwd.get State.canto >>= make_label in
+  Lwd_utils.flatten_l [ current_level; current_canto ]
 
 let button_pane =
   let open Nottui in
   let open Notty in
-  let open Lwd_infix in
   let canto_button ~label ~f =
     W.hbox
       [
@@ -161,14 +160,11 @@ let button_pane =
   in
   let$* canto_level = Lwd.get State.canto
   and$ parens_level = Lwd.get State.level in
-  let$* resizeable_body =
-    let$ static_body = inner_parens canto_level parens_level in
-    Ui.resize ~h:10 static_body |> Lwd.pure |> W.scroll_area
-  in
+  let resizeable_body = inner_parens canto_level parens_level in
   let canto_button_top = canto_button ~label:" - " ~f:pred in
   let canto_button_bottom = canto_button ~label:" +" ~f:succ in
-  let$* parens_button_left = parens_button ~label:'(' ~f:pred in
-  let$* parens_button_right = parens_button ~label:')' ~f:succ in
+  let$* parens_button_left = parens_button ~label:'(' ~f:pred
+  and$ parens_button_right = parens_button ~label:')' ~f:succ in
   W.vbox
     [
       W.hbox
@@ -180,7 +176,7 @@ let button_pane =
               Lwd.pure (Ui.space 0 10);
               canto_button_top;
               Lwd.pure (Ui.space 0 5);
-              resizeable_body;
+              Lwd.join resizeable_body;
               Lwd.pure (Ui.space 0 5);
               canto_button_bottom;
               Lwd.pure (Ui.space 0 10);

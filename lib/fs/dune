@@ -1,4 +1,4 @@
 (library
-(name fs)
-(libraries dolog re)
-(modules bfs))
+ (name fs)
+ (libraries dolog re)
+ (modules bfs))

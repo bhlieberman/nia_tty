@@ -1,4 +1,4 @@
 (library
-(name gui)
-(modules core)
-(libraries nottui notty fs))
+ (name gui)
+ (modules core)
+ (libraries nottui notty fs))

@@ -1,5 +1,4 @@
 module Files = struct
-
   let files = Sys.readdir "assets"
 
   let data () =

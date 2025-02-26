@@ -20,7 +20,7 @@
  (synopsis "A poem in a terminal")
  (description "A reactive TUI for reading and interacting with Nouvelles Impressions d'Afrique,
  by Raymond Roussel")
- (depends ocaml dune dolog nottui nottui-pretty lwd re ppx_let)
+ (depends ocaml angstrom dune dolog nottui nottui-pretty lwd re ppx_let)
  (tags
   (topics "to describe" your project)))
 
